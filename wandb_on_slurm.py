@@ -15,7 +15,7 @@ def run(config_yaml, node_list):
     with open(config_yaml) as file:
         config_dict = yaml.load(file, Loader=yaml.FullLoader)
     config_dict['parameters']['epochs'] = 5
-    
+
     sweep_id = wandb.sweep(config_dict)
 
     for node in node_list:
