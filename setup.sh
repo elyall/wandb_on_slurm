@@ -14,6 +14,7 @@ sudo mkdir /nfs/code
 sudo chown -R ec2-user:ec2-user /nfs/code
 cp ~/wandb_on_slurm/wandb_on_slurm.py /nfs/code/
 cp ~/wandb_on_slurm/start-agent.sh /nfs/code/
+chmod +x /nfs/code/start-agent.sh
 cd /nfs/code
 
 # clone example to run
