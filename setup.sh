@@ -7,7 +7,7 @@ sudo pip3 install --upgrade pip
 
 # create accessible logs directory
 sudo mkdir /nfs/logs
-chown -R ec2-user:ec2-user /nfs/logs
+sudo chown -R ec2-user:ec2-user /nfs/logs
 
 # create accessible code directory
 sudo mkdir /nfs/code
@@ -22,3 +22,18 @@ cp ~/wandb_on_slurm/wandb_on_slurm.py /nfs/code/examples/examples/keras/keras-cn
 python3 -m venv wandb-venv
 source wandb-venv/bin/activate
 pip install --upgrade -r examples/examples/keras/keras-cnn-fashion/requirements.txt
+
+# login and copy key to accessible folder
+wandb login
+python - << EOF
+import netrc
+nrc = netrc.netrc('/home/ec2-user/.netrc')
+key = {'work_account': nrc.authenticators('api.wandb.ai')[2]}
+import json
+with open('/nfs/code/keys.json', 'w') as fp:
+    json.dump(key, fp)
+EOF
+chmod 600 /nfs/code/keys.json
+
+deactivate
+cd ~
