@@ -23,16 +23,19 @@ def run(config_yaml, node_list):
     config_dict['program'] = '/nfs/code/examples/examples/keras/keras-cnn-fashion/train.py'
     config_dict['parameters']['epochs']['value'] = 5
 
-    sweep_id = wandb.sweep(config_dict)
+    sweep_id = wandb.sweep(config_dict, project="wandb_on_slurm")
     
+    sp = []
     for node in node_list:
-        subprocess.Popen(['srun',
+        sp.append(subprocess.Popen(['srun',
                         '--nodes=1',
                         '--ntasks=1',
                         '-w',
                         node,
                         'start-agent.sh',
-                        sweep_id])
+                        sweep_id]))
+    exit_codes = [p.wait() for p in sp] # wait for processes to finish
+    return exit_codes 
 
 
 if __name__ == '__main__':
