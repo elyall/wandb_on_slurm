@@ -39,12 +39,12 @@ Parameters:
 
   ComputeNodeInstanceType:
     Type: String
-    Default: c5.large
+    Default: p2.xlarge
     Description: Instance type to use to launch the compute node
 
   ComputeNodeCPUs:
     Type: Number
-    Default: 2
+    Default: 4
     Description: Number of vCPUs for the compute node instance type
 
 Metadata: 
@@ -202,6 +202,7 @@ Resources:
               sleep 15
 
               yum install openssl openssl-devel pam-devel numactl numactl-devel hwloc hwloc-devel lua lua-devel readline-devel rrdtool-devel ncurses-devel man2html libibmad libibumad rpm-build -y
+              yum install python3 -y
 
               mkdir -p /nfs
               mount -t nfs ${HeadNodeNetworkInterface.PrimaryPrivateIpAddress}:/nfs /nfs
