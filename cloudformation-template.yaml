@@ -1,0 +1,440 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Deploy an example Slurm headnode with the AWS plugin for Slurm (version 2)
+
+Parameters:
+  SlurmPackageUrl:
+    Type: String
+    Default: https://download.schedmd.com/slurm/slurm-20.02.3.tar.bz2
+    Description: URL to the Slurm installation package. The filename must be like slurm-*.tar.bz2
+
+  PluginPrefixUrl:
+    Type: String
+    Default: https://github.com/aws-samples/aws-plugin-for-slurm/raw/plugin-v2/
+    Description: Path to the plugin files
+
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+    Description: VPC where the headnode and the compute nodes will be launched
+
+  Subnet1Id:
+    Type: AWS::EC2::Subnet::Id
+    Description: Subnet 1 in the VPC where the headnode and the compute nodes will be launched. Must be a public subnet or a private subnet with a default route to NAT
+
+  Subnet2Id:
+    Type: AWS::EC2::Subnet::Id
+    Description: Subnet 2 in the VPC where the compute nodes will be launched. Must be a public subnet or a private subnet with a default route to NAT
+
+  KeyPair:
+    Type: AWS::EC2::KeyPair::KeyName
+    Description: Key pair that will be used to launch instances
+
+  LatestAmiId:
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Default: /aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2
+
+  HeadNodeInstanceType:
+    Type: String
+    Default: c5.large
+    Description: Instance type to use to launch the head node
+
+  ComputeNodeInstanceType:
+    Type: String
+    Default: c5.large
+    Description: Instance type to use to launch the compute node
+
+  ComputeNodeCPUs:
+    Type: Number
+    Default: 2
+    Description: Number of vCPUs for the compute node instance type
+
+Metadata: 
+  AWS::CloudFormation::Interface: 
+    ParameterGroups: 
+      - Label: 
+          default: Network
+        Parameters: 
+          - VpcId
+          - Subnet1Id
+          - Subnet2Id
+      - Label: 
+          default: Instances
+        Parameters: 
+          - HeadNodeInstanceType
+          - ComputeNodeInstanceType
+          - ComputeNodeCPUs
+          - KeyPair
+          - LatestAmiId
+      - Label: 
+          default: Packages
+        Parameters: 
+          - SlurmPackageUrl
+          - PluginPrefixUrl
+    ParameterLabels: 
+      VpcId: 
+        default: VPC ID
+      Subnet1Id: 
+        default: Subnet 1 ID
+      Subnet2Id: 
+        default: Subnet 2 ID
+      HeadNodeInstanceType: 
+        default: Headnode Instance Type
+      ComputeNodeInstanceType: 
+        default: Compute Node Instance Type
+      ComputeNodeCPUs: 
+        default: Compute Node vCPUs
+      KeyPair: 
+        default: Key Pair
+      LatestAmiId: 
+        default: Latest Amazon Linux 2 AMI ID
+      SlurmPackageUrl: 
+        default: Slurm Package URL
+      PluginPrefixUrl: 
+        default: Plugin URL Prefix
+
+Resources:
+  SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+        GroupDescription: Allow SSH traffic from Internet and traffic between Slurm nodes
+        VpcId: !Ref VpcId
+        SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+
+  SecurityGroupInbound:
+      Type: AWS::EC2::SecurityGroupIngress
+      Properties:
+        IpProtocol: -1
+        SourceSecurityGroupId: !GetAtt [ SecurityGroup, GroupId ]
+        GroupId: !GetAtt [ SecurityGroup, GroupId ]
+
+  ComputeNodeRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: root
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action: ec2:DescribeTags
+                Resource: '*'
+
+  ComputeNodeInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles:
+        - !Ref ComputeNodeRole
+
+  HeadNodeRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: root
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ec2:CreateFleet
+                  - ec2:RunInstances
+                  - ec2:TerminateInstances
+                  - ec2:CreateTags
+                  - ec2:DescribeInstances
+                Resource: '*'
+              - Effect: Allow
+                Action: iam:PassRole
+                Resource: !GetAtt [ ComputeNodeRole, Arn ]
+
+  HeadNodeInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles:
+        - !Ref HeadNodeRole
+
+  HeadNodeNetworkInterface:
+    Type: AWS::EC2::NetworkInterface
+    Properties: 
+      GroupSet: 
+        - !GetAtt [ SecurityGroup, GroupId ]
+      SubnetId: !Ref Subnet1Id
+
+  LaunchTemplate:
+    Type: AWS::EC2::LaunchTemplate
+    Properties:
+      LaunchTemplateData:
+        KeyName: !Ref KeyPair
+        ImageId: !Ref LatestAmiId
+        IamInstanceProfile:
+          Arn: !GetAtt [ ComputeNodeInstanceProfile, Arn ]
+        SecurityGroupIds:
+          - !GetAtt [ SecurityGroup, GroupId ]
+        UserData:
+          Fn::Base64:
+            !Sub |
+              #!/bin/bash -x
+              yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
+              yum install munge munge-libs munge-devel -y
+
+              echo "welcometoslurmamazonuserwelcometoslurmamazonuserwelcometoslurmamazonuser" | tee /etc/munge/munge.key
+              chown munge:munge /etc/munge/munge.key
+              chmod 600 /etc/munge/munge.key
+              chown -R munge /etc/munge/ /var/log/munge/
+              chmod 0700 /etc/munge/ /var/log/munge/
+              systemctl enable munge
+              systemctl start munge
+              sleep 15
+
+              yum install openssl openssl-devel pam-devel numactl numactl-devel hwloc hwloc-devel lua lua-devel readline-devel rrdtool-devel ncurses-devel man2html libibmad libibumad rpm-build -y
+
+              mkdir -p /nfs
+              mount -t nfs ${HeadNodeNetworkInterface.PrimaryPrivateIpAddress}:/nfs /nfs
+              export SLURM_HOME=/nfs/slurm
+
+              mkdir -p /var/spool/slurm
+              'cp' $SLURM_HOME/etc/slurm/slurmd.service /lib/systemd/system
+              systemctl enable slurmd.service
+              systemctl start slurmd.service
+
+  HeadNodeInstance:
+    Type: AWS::EC2::Instance
+    Properties: 
+      ImageId: !Ref LatestAmiId
+      InstanceType: !Ref HeadNodeInstanceType
+      IamInstanceProfile: !Ref HeadNodeInstanceProfile
+      KeyName:  !Ref KeyPair
+      NetworkInterfaces: 
+        - NetworkInterfaceId: !Ref HeadNodeNetworkInterface
+          DeviceIndex: 0
+      Tags:
+        - Key: Name
+          Value: headnode
+      UserData:
+          Fn::Base64:
+            !Sub |
+              #!/bin/bash -x
+              # Install packages
+              yum update -y
+              yum install nfs-utils python2 python2-pip python3 python3-pip -y
+              yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
+              yum install munge munge-libs munge-devel openssl openssl-devel pam-devel numactl numactl-devel hwloc hwloc-devel lua lua-devel readline-devel rrdtool-devel ncurses-devel man2html libibmad libibumad rpm-build -y
+              yum groupinstall "Development Tools" -y
+              pip3 install boto3
+              pip3 install awscli
+
+              # Configure NFS share
+              mkdir -p /nfs
+              echo "/nfs *(rw,async,no_subtree_check,no_root_squash)" | tee /etc/exports
+              systemctl enable nfs
+              systemctl start nfs
+              exportfs -av
+
+              # Configure Munge
+              echo "welcometoslurmamazonuserwelcometoslurmamazonuserwelcometoslurmamazonuser" | tee /etc/munge/munge.key
+              chown munge:munge /etc/munge/munge.key
+              chmod 600 /etc/munge/munge.key
+              chown -R munge /etc/munge/ /var/log/munge/
+              chmod 0700 /etc/munge/ /var/log/munge/
+              systemctl enable munge
+              systemctl start munge
+              sleep 5
+
+              # Install Slurm
+              cd /home/ec2-user/
+              wget -q ${SlurmPackageUrl}
+              tar -xvf /home/ec2-user/slurm-*.tar.bz2 -C /home/ec2-user
+              cd /home/ec2-user/slurm-*
+              /home/ec2-user/slurm-*/configure --prefix=/nfs/slurm
+              make -j 4
+              make install
+              sleep 5
+              export SLURM_HOME=/nfs/slurm
+              mkdir -p $SLURM_HOME/etc/slurm
+              'cp' /home/ec2-user/slurm-*/etc/* $SLURM_HOME/etc/slurm
+
+              # Install plugin
+              mkdir -p $SLURM_HOME/etc/aws
+              cd $SLURM_HOME/etc/aws
+              wget -q ${PluginPrefixUrl}common.py
+              wget -q ${PluginPrefixUrl}resume.py
+              wget -q ${PluginPrefixUrl}suspend.py
+              wget -q ${PluginPrefixUrl}generate_conf.py
+              wget -q ${PluginPrefixUrl}change_state.py 
+              chmod +x *.py
+
+              cat > $SLURM_HOME/etc/aws/config.json <<EOF
+              {
+                 "LogLevel": "INFO",
+                 "LogFileName": "/var/log/slurm_plugin.log",
+                 "SlurmBinPath": "$SLURM_HOME/bin",
+                 "SlurmConf": {
+                    "PrivateData": "CLOUD",
+                    "ResumeProgram": "$SLURM_HOME/etc/aws/resume.py",
+                    "SuspendProgram": "$SLURM_HOME/etc/aws/suspend.py",
+                    "ResumeRate": 100,
+                    "SuspendRate": 100,
+                    "ResumeTimeout": 300,
+                    "SuspendTime": 350,
+                    "TreeWidth": 60000
+                 }
+              }
+              EOF
+
+              cat > $SLURM_HOME/etc/aws/partitions.json <<'EOF'
+              {
+                 "Partitions": [
+                    {
+                       "PartitionName": "aws",
+                       "NodeGroups": [
+                          {
+                             "NodeGroupName": "node",
+                             "MaxNodes": 100,
+                             "Region": "${AWS::Region}",
+                             "SlurmSpecifications": {
+                                "CPUs": "${ComputeNodeCPUs}"
+                             },
+                             "PurchasingOption": "on-demand",
+                             "OnDemandOptions": {
+                                 "AllocationStrategy": "lowest-price"
+                             },
+                             "LaunchTemplateSpecification": {
+                                "LaunchTemplateId": "${LaunchTemplate}",
+                                "Version": "$Latest"
+                             },
+                             "LaunchTemplateOverrides": [
+                                {
+                                   "InstanceType": "${ComputeNodeInstanceType}"
+                                }
+                             ],
+                             "SubnetIds": [
+                                "${Subnet1Id}",
+                                "${Subnet2Id}"
+                             ]
+                          }
+                       ]
+                    }
+                 ]
+              }
+              EOF
+
+              cat > $SLURM_HOME/etc/slurm.conf <<'EOF'
+              ClusterName=amazon
+              ControlMachine=@HEADNODE@
+              ControlAddr=${HeadNodeNetworkInterface.PrimaryPrivateIpAddress}
+              SlurmdUser=root
+              SlurmctldPort=6817
+              SlurmdPort=6818
+              AuthType=auth/munge
+              StateSaveLocation=/var/spool/slurm/ctld
+              SlurmdSpoolDir=/var/spool/slurm/d
+              SwitchType=switch/none
+              MpiDefault=none
+              SlurmctldPidFile=/var/run/slurmctld.pid
+              SlurmdPidFile=/var/run/slurmd.pid
+              ProctrackType=proctrack/pgid
+              ReturnToService=2
+              # TIMERS
+              SlurmctldTimeout=300
+              SlurmdTimeout=60
+              InactiveLimit=0
+              MinJobAge=300
+              KillWait=30
+              Waittime=0
+              # SCHEDULING
+              SchedulerType=sched/backfill
+              SelectType=select/cons_res
+              SelectTypeParameters=CR_Core
+              # LOGGING
+              SlurmctldDebug=3
+              SlurmctldLogFile=/var/log/slurmctld.log
+              SlurmdDebug=3
+              SlurmdLogFile=/var/log/slurmd.log
+              DebugFlags=NO_CONF_HASH
+              JobCompType=jobcomp/none
+              EOF
+              sed -i "s|@HEADNODE@|$HOSTNAME|g" $SLURM_HOME/etc/slurm.conf
+
+              # Configure the plugin
+              $SLURM_HOME/etc/aws/generate_conf.py
+              cat $SLURM_HOME/etc/aws/slurm.conf.aws >> $SLURM_HOME/etc/slurm.conf
+
+              crontab -l > mycron
+              cat > mycron <<EOF
+              * * * * * $SLURM_HOME/etc/aws/change_state.py
+              EOF
+              crontab mycron
+              rm mycron
+
+              # Get dynamically the node name when launching slurmd
+              cat > $SLURM_HOME/etc/aws/get_nodename <<'EOF'
+              instanceid=`/usr/bin/curl --fail -m 2 -s 169.254.169.254/latest/meta-data/instance-id`
+              if [[ ! -z "$instanceid" ]]; then
+                 region=`/usr/bin/curl -s 169.254.169.254/latest/meta-data/placement/availability-zone`
+                 region=${!region::-1}
+                 hostname=`/usr/bin/aws ec2 describe-tags --filters "Name=resource-id,Values=$instanceid" "Name=key,Values=Name" --region $region --query "Tags[0].Value" --output=text`
+              fi
+              if [ ! -z "$hostname" -a "$hostname" != "None" ]; then
+                 echo $hostname
+              else
+                 echo `hostname`
+              fi
+              EOF
+              chmod +x $SLURM_HOME/etc/aws/get_nodename
+
+              cat > $SLURM_HOME/etc/slurm/slurmd.service <<EOF
+              [Unit]
+              Description=Slurm node daemon
+              After=munge.service network.target remote-fs.target
+              [Service]
+              Type=forking
+              EnvironmentFile=-/etc/sysconfig/slurmd
+              ExecStartPre=/bin/bash -c "/bin/systemctl set-environment SLURM_NODENAME=\$($SLURM_HOME/etc/aws/get_nodename)"
+              ExecStart=/nfs/slurm/sbin/slurmd -N \$SLURM_NODENAME \$SLURMD_OPTIONS
+              ExecReload=/bin/kill -HUP \$MAINPID
+              PIDFile=/var/run/slurmd.pid
+              KillMode=process
+              LimitNOFILE=131072
+              LimitMEMLOCK=infinity
+              LimitSTACK=infinity
+              Delegate=yes
+              [Install]
+              WantedBy=multi-user.target
+              EOF
+
+              # Set environment variables
+              echo 'SLURM_HOME=/nfs/slurm' | tee /etc/profile.d/slurm.sh
+              echo 'SLURM_CONF=$SLURM_HOME/etc/slurm/slurm.conf' | tee -a /etc/profile.d/slurm.sh
+              echo 'PATH=$SLURM_HOME/bin:$PATH' | tee -a /etc/profile.d/slurm.sh
+
+              # Launch Slurmctld
+              mkdir -p /var/spool/slurm
+              'cp' $SLURM_HOME/etc/slurm/slurmd.service /lib/systemd/system
+              'cp' $SLURM_HOME/etc/slurm/slurmctld.service /lib/systemd/system
+              systemctl enable slurmctld
+              systemctl start slurmctld
+
+              /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource HeadNodeInstance --region ${AWS::Region}
+    CreationPolicy:
+      ResourceSignal:
+        Timeout: PT15M
+
+Outputs:
+  HeadNodeId:
+    Description: Head node instance ID
+    Value: !Ref HeadNodeInstance
