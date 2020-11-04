@@ -220,6 +220,13 @@ Resources:
       InstanceType: !Ref HeadNodeInstanceType
       IamInstanceProfile: !Ref HeadNodeInstanceProfile
       KeyName:  !Ref KeyPair
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeType: gp2
+            VolumeSize: '30'
+            DeleteOnTermination: 'true'
+            Encrypted: 'false'
       NetworkInterfaces: 
         - NetworkInterfaceId: !Ref HeadNodeNetworkInterface
           DeviceIndex: 0
@@ -233,6 +240,7 @@ Resources:
               # Install packages
               yum update -y
               yum install nfs-utils python2 python2-pip python3 python3-pip -y
+              yum install python3-devel -y
               yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
               yum install munge munge-libs munge-devel openssl openssl-devel pam-devel numactl numactl-devel hwloc hwloc-devel lua lua-devel readline-devel rrdtool-devel ncurses-devel man2html libibmad libibumad rpm-build -y
               yum groupinstall "Development Tools" -y
