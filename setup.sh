@@ -18,7 +18,7 @@ chmod +x /nfs/code/start-agent.sh
 cd /nfs/code
 
 # clone example to run
-git clone https://github.com/wandb/examples.git
+git clone https://github.com/elyall/examples.git
 
 # create virtual environment with required dependencies
 python3 -m venv wandb-venv
