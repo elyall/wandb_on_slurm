@@ -14,8 +14,9 @@ if os.path.exists("/nfs/code/keys.json"):
 @click.argument("config_yaml")
 @click.argument("node_list", nargs=-1)
 def run(config_yaml, node_list):
+    project_name = "wandb_on_slurm"
 
-    wandb.init(project="wandb_on_slurm")
+    wandb.init(project=project_name)
     
 
     with open(config_yaml) as file:
@@ -23,7 +24,7 @@ def run(config_yaml, node_list):
     config_dict['program'] = '/nfs/code/examples/examples/keras/keras-cnn-fashion/train.py'
     config_dict['parameters']['epochs']['value'] = 5
 
-    sweep_id = wandb.sweep(config_dict, project="wandb_on_slurm")
+    sweep_id = wandb.sweep(config_dict, project=project_name)
     
     sp = []
     for node in node_list:
@@ -33,7 +34,8 @@ def run(config_yaml, node_list):
                         '-w',
                         node,
                         'start-agent.sh',
-                        sweep_id]))
+                        sweep_id,
+                        project_name]))
     exit_codes = [p.wait() for p in sp] # wait for processes to finish
     return exit_codes 
 
