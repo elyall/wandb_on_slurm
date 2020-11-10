@@ -85,15 +85,6 @@ Agree to the acknowledgement and then select "Create stack".
 2. Select "SSH client", copy the text under "Example".
 3. Open a terminal, change into the folder that contains your SSH private key file, then paste the `ssh` code from the last step and hit enter.
 
-
-## Prepare your cluster for installing your dependencies and running Slurm
-While ssh'd into your headnode, download and run the setup script:
-```bash
-wget -q https://github.com/elyall/wandb_on_slurm/raw/main/setup_aws.sh
-. setup_aws.sh
-```
-This script first installs the development version of python and upgrades pip, steps necessary for installing the proper dependencies. Then it creates `logs/` and `code/` folders accessible to all nodes, and enters the `code/` folder.
-
 Note: best practices would be to create users without root privileges to run slurm jobs from. You can even place the users' home directories on the shared folder to save you the need of copying your W&B API key over later. If you want to go this route, look at the `add_user.sh` script to understand how to add a user profile in linux.
 
 Now your Slurm cluster is initialized! In the next step I'll show you how to install your code and queue your jobs!
@@ -166,6 +157,17 @@ Where start-agent.sh can be as simple as:
 #!/bin/bash
 wandb agent $1 --project $2
 ```
+
+
+## Interactive slurm jobs
+Running an interactive slurm job can be helpful for debugging. It allows you to spin up resources and run a shell inside of them. Before starting the interactive job, I recommend using `screen` to make the session detachable, allowing you to exit and return to the interactive job.
+```bash
+screen # start detachable session
+srun --nodes=2 --ntasks-per-node=1 --time=01:00:00 --partition=aws --pty bash -i # start interactive session
+# ctrl+a,d -> detach
+# "screen -r" -> resume
+```
+
 
 ## Running the tensorflow example
 To start, login to your cluster and change into a folder accessible to all of your workers (i.e. `/nfs/code`). We will first clone the repo. 
