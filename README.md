@@ -130,14 +130,11 @@ After the header is where you place your code which will run on the resources th
 
 When running the sweep, the unique step we have to do to take advantage of the multi-node parallelism offered by slurm is to determine what nodes are assigned to the job, and then pass that list of nodes into our script such that it can spin up a W&B agent on each node. This is what that looks like:
 
-In the SBATCH submission script it gathers the list of nodes assigned to the job:
-```bash
-nodes=$(scontrol show hostnames $SLURM_JOB_NODELIST) # get the node names
-nodes_array=( $nodes ) # gather them in an array
-
-python example.py "${nodes_array[@]}" # pass the array into the python script
+```python
+result = subprocess.run(['scontrol', 'show', 'hostnames'], stdout=subprocess.PIPE)
+node_list = result.stdout.decode('utf-8').split('\n')[:-1]
 ```
-Then in the python script we create an agent individually on each node using Slurm's `srun` command and python's `subprocess` module:
+Then later we create an agent individually on each node using Slurm's `srun` command and python's `subprocess` module:
 ```python
 sweep_id = wandb.sweep(config_dict, project=project_name)
 sp = []

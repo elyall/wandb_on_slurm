@@ -1,0 +1,21 @@
+method: random
+metric:
+  goal: minimize
+  name: loss
+parameters:
+  dropout:
+    values:
+    - 0.3
+    - 0.4
+    - 0.5
+  epochs:
+    value: 1
+  fc_layer_size:
+    values:
+    - 128
+    - 256
+    - 512
+  optimizer:
+    values:
+    - adam
+    - sgd

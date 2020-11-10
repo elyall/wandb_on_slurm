@@ -5,21 +5,24 @@ import yaml
 import os
 import json
 
+# Set API key
 if os.path.exists("/nfs/code/keys.json"):
     with open("/nfs/code/keys.json") as file:
         api_key = json.load(file)["work_account"]
         os.environ["WANDB_API_KEY"] = api_key
 
+# Gather nodes allocated to current slurm job
+result = subprocess.run(['scontrol', 'show', 'hostnames'], stdout=subprocess.PIPE)
+node_list = result.stdout.decode('utf-8').split('\n')[:-1]
+
 @click.command()
 @click.argument("config_yaml")
 @click.argument("train_file")
-@click.argument("node_list", nargs=-1)
-def run(config_yaml, train_file, node_list):
-    project_name = "wandb_on_slurm"
+@click.argument("project_name")
+def run(config_yaml, train_file, project_name):
 
     wandb.init(project=project_name)
     
-
     with open(config_yaml) as file:
         config_dict = yaml.load(file, Loader=yaml.FullLoader)
     config_dict['program'] = train_file
