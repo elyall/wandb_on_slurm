@@ -86,13 +86,15 @@ Agree to the acknowledgement and then select "Create stack".
 3. Open a terminal, change into the folder that contains your SSH private key file, then paste the `ssh` code from the last step and hit enter.
 
 
-## Prepare your cluster for intalling your dependencies and running Slurm
+## Prepare your cluster for installing your dependencies and running Slurm
 While ssh'd into your headnode, download and run the setup script:
 ```bash
 wget -q https://github.com/elyall/wandb_on_slurm/raw/main/setup_aws.sh
 . setup_aws.sh
 ```
-This script first installs the development version of python and upgrades pip, steps necessary for installing the proper dependencies. Then it creates `logs/` and `code/` folders accessible to all nodes.
+This script first installs the development version of python and upgrades pip, steps necessary for installing the proper dependencies. Then it creates `logs/` and `code/` folders accessible to all nodes, and enters the `code/` folder.
+
+Note: best practices would be to create users without root privileges to run slurm jobs from. You can even place the users' home directories on the shared folder to save you the need of copying your W&B API key over later. If you want to go this route, look at the `add_user.sh` script to understand how to add a user profile in linux.
 
 Now your Slurm cluster is initialized! In the next step I'll show you how to install your code and queue your jobs!
 
@@ -166,11 +168,13 @@ wandb agent $1 --project $2
 ```
 
 ## Running the tensorflow example
-To start, login to your cluster, change into a folder accessible to all of your workers, then clone my repo: `git clone https://github.com/elyall/wandb_on_slurm.git`
-
-Next we will download the model script and install its dependencies into a virtual environment. Make sure you do all of this in a folder accessible to all of your workers (i.e. `/nfs/code`).
+To start, login to your cluster and change into a folder accessible to all of your workers (i.e. `/nfs/code`). We will first clone the repo. 
 ```bash
-cd ~/wandb_on_slurm
+git clone https://github.com/elyall/wandb_on_slurm.git
+```
+Then we will run `setup_tf.sh` to download the model script and install its dependencies into a virtual environment.
+```bash
+cd wandb_on_slurm
 bash setup_tf.sh
 ```
 For those using aws-plugin-for-slurm, run `bash copy_wandb_key.sh` to copy the W&B API key into an accessible directory.
@@ -181,14 +185,12 @@ sbatch example_tf.sbatch
 ```
 
 ## Running the pytorch example
-To start, login to your cluster, change into a folder accessible to all of your workers, then clone my repo: `git clone https://github.com/elyall/wandb_on_slurm.git`
-
-Next we will install conda and the model's dependencies into a conda environment. Make sure you do all of this in a folder accessible to all of your workers (i.e. `/nfs/code`).
+To start, login to your cluster and change into a folder accessible to all of your workers (i.e. `/nfs/code`). First clone the repo if you haven't done so already. Then run the `setup_torch.sh` script to install conda and the model's dependencies into a conda environment.
 ```bash
-cd ~/wandb_on_slurm
+cd wandb_on_slurm
 bash setup_torch.sh
 ```
-For those using aws-plugin-for-slurm, run `bash copy_wandb_key.sh` to copy the W&B API key into an accessible directory.
+For those using aws-plugin-for-slurm, if you haven't done so run `bash copy_wandb_key.sh` to copy the W&B API key into an accessible directory.
 
 Next submit your slurm job to the job queue:
 ```
