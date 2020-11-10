@@ -14,3 +14,6 @@ conda activate torch_example
 conda install pytorch torchvision -c pytorch -y
 pip install --upgrade wandb
 # pip install --upgrade git+git://github.com/wandb/client.git # install latest development version of wandb
+
+# log in to W&B
+wandb login
