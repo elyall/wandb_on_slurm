@@ -5,6 +5,7 @@ username="wandb-user"
 
 sudo groupadd $groupname
 
+sudo mkdir /nfs/home
 sudo adduser $username
 sudo usermod -aG $groupname $username
 sudo mkdir -p /nfs/home/$username
