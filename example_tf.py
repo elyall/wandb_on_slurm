@@ -12,8 +12,9 @@ if os.path.exists("/nfs/code/keys.json"):
 
 @click.command()
 @click.argument("config_yaml")
+@click.argument("train_file")
 @click.argument("node_list", nargs=-1)
-def run(config_yaml, node_list):
+def run(config_yaml, train_file, node_list):
     project_name = "wandb_on_slurm"
 
     wandb.init(project=project_name)
@@ -21,8 +22,7 @@ def run(config_yaml, node_list):
 
     with open(config_yaml) as file:
         config_dict = yaml.load(file, Loader=yaml.FullLoader)
-    config_dict['program'] = '/nfs/code/examples/examples/keras/keras-cnn-fashion/train.py'
-    config_dict['parameters']['epochs']['value'] = 5
+    config_dict['program'] = train_file
 
     sweep_id = wandb.sweep(config_dict, project=project_name)
     

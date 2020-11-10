@@ -6,7 +6,7 @@
 #SBATCH --time=0:20:0
 #SBATCH --output=/nfs/logs/slurm-%j.log
 #SBATCH --chdir=/nfs/code/
-date;hostname;id;pwd;ls
+date;hostname;id;pwd
 
 echo 'gathering node information'
 nodes=$(scontrol show hostnames $SLURM_JOB_NODELIST) # get the node names
@@ -14,10 +14,10 @@ nodes_array=( $nodes )
 echo "${nodes_array[@]}"
 
 echo 'activating virtual environment'
-source wandb-venv/bin/activate
+conda activate torch_example
 
-config_yaml='/nfs/code/examples/examples/keras/keras-cnn-fashion/sweep-bayes-hyperband.yaml'
-echo 'template:' $config_yaml
+train_file='/nfs/code/wandb_on_slurm/pytorch_model.py'
+echo 'script:' $train_file
 
 echo 'running script'
-python wandb_on_slurm.py $config_yaml "${nodes_array[@]}"
+python wandb_on_slurm/example_pytorch.py $train_file "${nodes_array[@]}"

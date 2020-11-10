@@ -32,6 +32,10 @@ Parameters:
     Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
     Default: /aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2
 
+  ComputeAmiID:
+    Type: AWS::EC2::Image::Id
+    Default: ami-02440419a5afe47ab
+
   HeadNodeInstanceType:
     Type: String
     Default: c5.large
@@ -64,6 +68,7 @@ Metadata:
           - ComputeNodeCPUs
           - KeyPair
           - LatestAmiId
+          - ComputeAmiID
       - Label: 
           default: Packages
         Parameters: 
@@ -86,6 +91,8 @@ Metadata:
         default: Key Pair
       LatestAmiId: 
         default: Latest Amazon Linux 2 AMI ID
+      ComputeAmiID:
+        default: Latest Deep Learning Base AMI ID in your region
       SlurmPackageUrl: 
         default: Slurm Package URL
       PluginPrefixUrl: 
@@ -180,7 +187,7 @@ Resources:
     Properties:
       LaunchTemplateData:
         KeyName: !Ref KeyPair
-        ImageId: !Ref LatestAmiId
+        ImageId: !Ref ComputeAmiID
         IamInstanceProfile:
           Arn: !GetAtt [ ComputeNodeInstanceProfile, Arn ]
         SecurityGroupIds:
