@@ -171,27 +171,27 @@ To start, login to your cluster and change into a folder accessible to all of yo
 ```bash
 git clone https://github.com/elyall/wandb_on_slurm.git
 ```
-Then we will run `setup_tf.sh` to download the model script and install its dependencies into a virtual environment.
+Then we will run `example_tf/setup.sh` to download the model script and install its dependencies into a virtual environment.
 ```bash
 cd wandb_on_slurm
-bash setup_tf.sh
+bash example_tf/setup.sh
 ```
 For those using aws-plugin-for-slurm, run `bash copy_wandb_key.sh` to copy the W&B API key into an accessible directory.
 
 Next submit your slurm job to the job queue:
 ```
-sbatch example_tf.sbatch
+sbatch example_tf/example.sbatch
 ```
 
 ## Running the pytorch example
-To start, login to your cluster and change into a folder accessible to all of your workers (i.e. `/nfs/code`). First clone the repo if you haven't done so already. Then run the `setup_torch.sh` script to install conda and the model's dependencies into a conda environment.
+To start, login to your cluster and change into a folder accessible to all of your workers (i.e. `/nfs/code`). First clone the repo if you haven't done so already. Then run the `example_torch/setup.sh` script to install conda and the model's dependencies into a conda environment.
 ```bash
 cd wandb_on_slurm
-bash setup_torch.sh
+bash example_torch/setup.sh
 ```
 For those using aws-plugin-for-slurm, if you haven't done so run `bash copy_wandb_key.sh` to copy the W&B API key into an accessible directory.
 
 Next submit your slurm job to the job queue:
 ```
-sbatch example_pytorch.sbatch
+sbatch example_torch/example.sbatch
 ```

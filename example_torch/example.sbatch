@@ -12,10 +12,10 @@ echo 'activating virtual environment'
 conda activate torch_example
 which python
 
-config_yaml='/nfs/code/wandb_on_slurm/torch_params.yaml'
+config_yaml='/nfs/code/wandb_on_slurm/example_torch/torch_params.yaml'
 echo 'config:' $config_yaml
 
-train_file='/nfs/code/wandb_on_slurm/pytorch_model.py'
+train_file='/nfs/code/wandb_on_slurm/example_torch/pytorch_model.py'
 echo 'train_file:' $train_file
 
 project_name='wandb_slurm_torch'
