@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # download example
-git clone https://github.com/elyall/examples.git
+git clone https://github.com/wandb/examples.git
 
 # create virtual environment and install required dependencies
 python3 -m venv wandb-venv
