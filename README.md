@@ -42,7 +42,7 @@ In your terminal:
 
 ## Create your HPC stack with CloudFormation via the AWS Console
 
-Download the CloudFormation template: `wget -q https://github.com/elyall/wandb_on_slurm/raw/main/cloudformation-template.yaml`
+Download the CloudFormation template: `wget -q https://github.com/elyall/wandb_on_slurm/raw/main/aws/cloudformation-template.yaml`
 
 Then edit the `cloudformation-template.yaml` to your liking. For instance you can change the maximum number of nodes allowed in your cluster at line 323, or the size of your headnode's filesystem where all of the compute nodes access your code at line 234. 
 
@@ -176,7 +176,7 @@ Then we will run `example_tf/setup.sh` to download the model script and install 
 cd wandb_on_slurm
 bash example_tf/setup.sh
 ```
-For those using aws-plugin-for-slurm, run `bash copy_wandb_key.sh` to copy the W&B API key into an accessible directory.
+For those using aws-plugin-for-slurm, run `bash aws/copy_wandb_key.sh` to copy the W&B API key into an accessible directory.
 
 Next submit your slurm job to the job queue:
 ```
@@ -189,7 +189,7 @@ To start, login to your cluster and change into a folder accessible to all of yo
 cd wandb_on_slurm
 bash example_torch/setup.sh
 ```
-For those using aws-plugin-for-slurm, if you haven't done so run `bash copy_wandb_key.sh` to copy the W&B API key into an accessible directory.
+For those using aws-plugin-for-slurm, if you haven't done so run `bash aws/copy_wandb_key.sh` to copy the W&B API key into an accessible directory.
 
 Next submit your slurm job to the job queue:
 ```
