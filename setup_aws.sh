@@ -12,4 +12,6 @@ sudo chown -R ec2-user:ec2-user /nfs/logs
 # create accessible code directory
 sudo mkdir /nfs/code
 sudo chown -R ec2-user:ec2-user /nfs/code
+
+# make code directory working directory
 cd /nfs/code

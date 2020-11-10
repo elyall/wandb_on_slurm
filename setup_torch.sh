@@ -1,7 +1,5 @@
 #!/bin/bash
 
-cd /nfs/code # change to accessible directory
-
 # download and install conda
 wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
 bash Miniconda3-latest-Linux-x86_64.sh # install in /nfs/code/miniconda3
