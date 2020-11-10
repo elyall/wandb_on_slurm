@@ -90,7 +90,7 @@ Agree to the acknowledgement and then select "Create stack".
 While ssh'd into your headnode, download and run the setup script:
 ```bash
 wget -q https://github.com/elyall/wandb_on_slurm/raw/main/setup_aws.sh
-bash setup_aws.sh
+. setup_aws.sh
 ```
 This script first installs the development version of python and upgrades pip, steps necessary for installing the proper dependencies. Then it creates `logs/` and `code/` folders accessible to all nodes.
 

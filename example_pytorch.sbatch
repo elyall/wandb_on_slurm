@@ -1,11 +1,11 @@
 #!/bin/bash
 #SBATCH --nodes=2
 #SBATCH --ntasks-per-node=1
-#SBATCH --cpus-per-task=2
+#SBATCH --cpus-per-task=4
 #SBATCH --partition=aws
-#SBATCH --time=0:20:0
+#SBATCH --time=0:30:0
 #SBATCH --output=/nfs/logs/slurm-%j.log
-#SBATCH --chdir=/nfs/code/
+#SBATCH --chdir=/nfs/code/wandb_on_slurm/
 date;hostname;id;pwd
 
 echo 'gathering node information'
@@ -20,4 +20,4 @@ train_file='/nfs/code/wandb_on_slurm/pytorch_model.py'
 echo 'script:' $train_file
 
 echo 'running script'
-python wandb_on_slurm/example_pytorch.py $train_file "${nodes_array[@]}"
+python example_pytorch.py $train_file "${nodes_array[@]}"
