@@ -6,8 +6,8 @@ import os
 import json
 
 # Set API key
-if os.path.exists("/nfs/code/keys.json"):
-    with open("/nfs/code/keys.json") as file:
+if os.path.exists("keys.json"):
+    with open("keys.json") as file:
         api_key = json.load(file)["work_account"]
         os.environ["WANDB_API_KEY"] = api_key
 
