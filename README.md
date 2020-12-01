@@ -1,12 +1,13 @@
-# Using Weights & Biases' Sweeps module on Slurm
+# Parallelizing Weights & Biases' Sweeps module on Slurm
 
-Weights & Biases (W&B) provides a number of tools that make tracking machine learning (ML) models a lot easier. One of their most popular tools is their Sweeps module that allows you to easily perform state-of-the-art hyperparameter optimization techniques across many machines in parallel using `wandb.agent()`. Many academic researchers have access to high performance computing (HPC) clusters that utilize a Slurm job scheduler, but spinning up multiple W&B agents within a Slurm job is not straightforward. Let me walk you through how to do just that.
+Weights & Biases (W&B) provides a number of tools that make tracking machine learning (ML) models a lot easier. One of their most popular tools is their Sweeps module that allows you to easily perform state-of-the-art hyperparameter optimization techniques across many machines in parallel using `wandb.agent()`. Many academic researchers have access to high performance computing (HPC) clusters that utilize a Slurm job scheduler, but spinning up multiple W&B agents on multiple nodes within a Slurm job is not straightforward. Let me walk you through how to do just that.
 
 This walkthrough will have two parts:
 
 1. Setting up your own burstable Slurm cluster on Amazon Web Services (AWS) using their [aws-plugin-for-slurm](https://github.com/aws-samples/aws-plugin-for-slurm/tree/plugin-v2).
-2. Formulating and submitting a W&B sweep on Slurm.
+2. Formulating and submitting a W&B Sweep across multiple nodes on Slurm.
 
+NOTE: if you just want to run a single agent (i.e. a single thread on a single node), then your task is much simpler. Just run `sweepid = wandb.sweep(config); wandb.agent(sweepid)` in your submitted job and you're good to go.
 
 # Setting up your own Slurm cluster on AWS
 Note: if using specialized AWS instances for the first time (such as the P-family GPU instances) you must [request a service limit increase](http://aws.amazon.com/contact-us/ec2-request). The number of nodes you request should be at least equal to the number of nodes you'll make available to your Slurm cluster (more below).
