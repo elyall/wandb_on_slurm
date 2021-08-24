@@ -10,6 +10,9 @@
 date;hostname;id;pwd
 
 sweep_id=[SWEEP_ID_HERE]
+echo 'sweep_id:' $sweep_id
+
+project_name='wandb_slurm_tf'
 echo 'project_name:' $project_name
 
 echo 'job array task:' $SLURM_ARRAY_TASK_ID
@@ -18,4 +21,4 @@ echo 'activating virtual environment'
 source wandb-venv/bin/activate
 which python
 
-wandb agent $sweep_id
+wandb agent $sweep_id --project $project_name
