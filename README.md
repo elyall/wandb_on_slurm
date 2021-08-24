@@ -2,14 +2,19 @@
 
 Weights & Biases (W&B) provides a number of tools that make tracking machine learning (ML) models a lot easier. One of their most popular tools is their Sweeps module that allows you to easily perform state-of-the-art hyperparameter optimization techniques across many machines in parallel using `wandb.agent()`. Many academic researchers have access to high performance computing (HPC) clusters that utilize a Slurm job scheduler, but spinning up multiple W&B agents on multiple nodes within a Slurm job is not straightforward. Let me walk you through how to do just that.
 
-This walkthrough will have two parts:
+This walkthrough has three parts:
 
 1. Setting up your own burstable Slurm cluster on Amazon Web Services (AWS) using their [aws-plugin-for-slurm](https://github.com/aws-samples/aws-plugin-for-slurm/tree/plugin-v2).
-2. Formulating and submitting a W&B Sweep across multiple nodes on Slurm.
+2. Initiating and scaling a W&B Sweep across multiple nodes on Slurm.
+3. Adding Slurm nodes to a previously initiated W&B Sweep.
 
 NOTE: if you just want to run a single agent (i.e. a single thread on a single node), then your task is much simpler. Just run `sweepid = wandb.sweep(config); wandb.agent(sweepid)` in your submitted job and you're good to go.
 
 # Setting up your own Slurm cluster on AWS
+
+<details>
+<summary>Click to expand</summary>
+
 Note: if using specialized AWS instances for the first time (such as the P-family GPU instances) you must [request a service limit increase](http://aws.amazon.com/contact-us/ec2-request). The number of nodes you request should be at least equal to the number of nodes you'll make available to your Slurm cluster (more below).
 
 AWS offers a great [plugin](https://github.com/aws-samples/aws-plugin-for-slurm/tree/plugin-v2) that greatly simplifies the process of creating your own burstable Slurm cluster. This cluster will constantly run a 'headnode' that runs the Slurm daemon (manages the job queue and spins up resources) and a cron job that pulls down unused resources. Your jobs will be run on compute nodes that are spun up when needed and torn down when not used, saving you money. The plugin also offers other cool abilities, like the ability to extend an existing cluster giving you more compute power or specialized hardware when needed, or the ability to specify partitions that only use spot instances which saves you even more money. I will not get into these cool features, but you can read more about it via their [README](https://github.com/aws-samples/aws-plugin-for-slurm/tree/plugin-v2/README.md).
@@ -63,7 +68,7 @@ Next we'll setup your stack:
 
 Hit "Next".
 
-![step1](imgs/cloudformation-step1.png)
+![step1](aws/imgs/cloudformation-step1.png)
 
 1. Enter a "Stack Name" such as "slurm".
 2. Select your VPC from the dropdown. (Note: the stack and VPC have to be in the same region)
@@ -74,7 +79,7 @@ Hit "Next".
 
 Hit "Next".
 
-![step1](imgs/cloudformation-step2.png)
+![step1](aws/imgs/cloudformation-step2.png)
 
 Hit "Next" again.
 
@@ -90,9 +95,11 @@ Note: best practices would be to create users without root privileges to run slu
 
 Now your Slurm cluster is initialized! In the next step I'll show you how to install your code and queue your jobs!
 
+</details>
+<br/>
 
-# Using Weigths & Biases on Slurm
-I have written up two examples of how to use W&B's Sweep module on slurm. The filepaths assume you are using a cluster as setup following the steps above, but the principles can be used on any slurm cluster.
+# Initiating and scaling a Weights & Biases Sweep on Slurm
+To initiate and scale a sweep adds some complexity as we need to make sure the sweep is initiated before we can add any agents (nodes) to the sweep. I have included two examples of how to do this. The filepaths assume you are using a cluster as setup following the steps above, but the principles can be used on any slurm cluster.
 
 Both examples come from [W&B's examples repo](https://github.com/wandb/examples):
 - The first example uses venv and tensorflow [[repo](https://github.com/wandb/examples/tree/master/examples/keras/keras-cnn-fashion)]
@@ -195,4 +202,16 @@ For those using aws-plugin-for-slurm, if you haven't done so run `bash aws/copy_
 Next submit your slurm job to the job queue:
 ```
 sbatch example_torch/example.sbatch
+```
+
+# Adding nodes to a previously initiated sweep
+If you simply want to add nodes to a previously initiated sweep the main thing you have to ensure is that your code is consistent with the machine your sweep was initiated on as W&B doesn't pickle dependencies like ray does (at least to my knowledge). Assuming that's the case, then the easiest approach is to submit a [Slurm job array](https://slurm.schedmd.com/job_array.html) where the number of array tasks matches the number of node tasks requested in order to get a 1-to-1 matching of W&B agents to job tasks. The relevant section of the sbatch script header would look something like this:
+```bash
+#SBATCH --nodes=4
+#SBATCH --ntasks-per-node=1
+#SBATCH --array=0-3
+```
+Check out the example script `add-nodes.sbatch` to get a better idea of what the job array script would look like. After editing the file to specify the `sweep_id`, the two steps are to activate the environment containing the code's dependencies, and then to start the agent. You would submit the job array via your CLI:
+```bash
+sbatch add-nodes.sbatch
 ```
