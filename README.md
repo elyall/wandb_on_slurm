@@ -208,8 +208,8 @@ sbatch example_torch/example.sbatch
 If you simply want to add nodes to a previously initiated sweep the main thing you have to ensure is that your code is consistent with the machine your sweep was initiated on as W&B doesn't pickle dependencies like ray does (at least to my knowledge). Assuming that's the case, then the easiest approach is to submit a [Slurm job array](https://slurm.schedmd.com/job_array.html) where the number of array tasks matches the number of node tasks requested in order to get a 1-to-1 matching of W&B agents to job tasks. The relevant section of the sbatch script header would look something like this:
 ```bash
 #SBATCH --nodes=4
-#SBATCH --ntasks-per-node=1
-#SBATCH --array=0-3
+#SBATCH --ntasks-per-node=2
+#SBATCH --array=0-7
 ```
 Check out the example script `add-nodes.sbatch` to get a better idea of what the job array script would look like. After editing the file to specify the `sweep_id`, the two steps are to activate the environment containing the code's dependencies, and then to start the agent. You would submit the job array via your CLI:
 ```bash
