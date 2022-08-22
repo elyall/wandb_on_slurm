@@ -1,0 +1,9 @@
+cff-version: 1.2.0
+authors:
+  - family-names: "Lyall"
+    given-names: "Evan"
+    orcid: "https://orcid.org/0000-0002-6946-7333"
+title: "Parallelizing Weights & Biases' Sweeps module on Slurm"
+version: 0.1.0
+date-released: 2021-08-24
+url: "https://github.com/elyall/wandb_on_slurm"
